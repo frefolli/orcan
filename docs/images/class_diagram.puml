@@ -1,0 +1,45 @@
+@startuml class diagram
+
+package antispam_bot {
+    class AntiSpamBot
+}
+
+package persistence {
+    class IAntiSpamPersistence
+    class AntiSpamPersistenceFactory
+    class AntiSpamPersistenceImpl
+    class AntiSpamPersistenceMock
+    class SqliteDatabase
+}
+
+package telegram_api {
+    class ITelegramAPI
+    class TelegramAPIFactory
+    class TelegramAPIImpl
+    class TelegramAPIMock
+}
+
+package utils {
+    class BotConfig
+}
+
+AntiSpamPersistenceImpl <|--- IAntiSpamPersistence
+AntiSpamPersistenceMock <|--- IAntiSpamPersistence
+AntiSpamPersistenceImpl <--- AntiSpamPersistenceFactory
+AntiSpamPersistenceMock <--- AntiSpamPersistenceFactory
+IAntiSpamPersistence <--- AntiSpamPersistenceFactory
+SqliteDatabase <--- AntiSpamPersistenceImpl
+
+TelegramAPIImpl <|--- ITelegramAPI
+TelegramAPIMock <|--- ITelegramAPI
+TelegramAPIImpl <--- TelegramAPIFactory
+TelegramAPIMock <--- TelegramAPIFactory
+ITelegramAPI <--- TelegramAPIFactory
+
+ITelegramAPI <--- AntiSpamBot
+TelegramAPIFactory <--- AntiSpamBot
+IAntiSpamPersistence <--- AntiSpamBot
+AntiSpamPersistenceFactory <--- AntiSpamBot
+BotConfig <--- AntiSpamBot
+
+@enduml
