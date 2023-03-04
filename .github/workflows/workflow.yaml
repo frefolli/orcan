@@ -54,7 +54,7 @@ jobs:
         pytest
   
   documentation:
-    needs: [build]
+    needs: [lint, test]
     name: documentation
     if: github.ref == 'refs/heads/master'
     environment:
