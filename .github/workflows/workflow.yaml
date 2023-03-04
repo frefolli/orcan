@@ -29,11 +29,11 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Lint with flake8
       run: |
-        flake8 ./lib/*.py ./tests/*.py --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 ./lib/*.py ./tests/*.py --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        flake8 ./**/*.py --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 ./**/*.py --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Lint with pylint
       run: |
-        pylint ./lib/*.py ./tests/*.py --exit-zero
+        pylint ./**/*.py --exit-zero
   
   test:
     name: test
