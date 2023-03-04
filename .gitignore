@@ -1,0 +1,22 @@
+# python virtual enviroment
+/.env
+
+# mkdocs site
+/site
+
+# build dist
+/dist
+
+# tests
+.coverage
+.pytest_cache
+/htmlcov
+
+# python caches
+__pycache__
+
+# secrets (now only a stub)
+# /utils/secrets.py
+
+# runtime databases
+*.db

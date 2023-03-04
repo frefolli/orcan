@@ -1,0 +1,1 @@
+:::persistence.antispam_persistence_factory

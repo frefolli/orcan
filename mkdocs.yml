@@ -1,0 +1,76 @@
+# mkdocs.yml
+site_name: Orcan
+site_description: Documentation for Svoltamib Bot Infrastructure
+site_author: Refolli Francesco
+site_url: https://github.com/frefolli/orcan
+repo_name: frefolli/orcan
+repo_url: https://github.com/frefolli/orcan
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  custom_dir: docs/.overrides
+  language: en
+  favicon: images/logo.png
+  icon:
+    repo: fontawesome/brands/github-alt
+    logo: icon
+  font:
+    text: Roboto
+    code: Roboto Mono
+  palette:
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.instant
+
+plugins:
+  - mkdocstrings
+
+nav:
+  - Index: index.md
+  - Reference:
+    - reference/index.md
+    - utils:
+      - reference/utils/index.md
+      - reference/utils/config.md
+      - reference/utils/secrets.md
+    - antispam_bot:
+      - reference/antispam_bot/index.md
+      - reference/antispam_bot/main.md
+      - reference/antispam_bot/antispam_bot.md
+    - persistence:
+      - reference/persistence/index.md
+      - reference/persistence/sqlite_database.md
+      - reference/persistence/i_antispam_persistence.md
+      - reference/persistence/antispam_persistence_factory.md
+      - reference/persistence/antispam_persistence_impl.md
+      - reference/persistence/antispam_persistence_mock.md
+    - telegram_api:
+      - reference/telegram_api/index.md
+      - reference/telegram_api/i_telegram_api.md
+      - reference/telegram_api/telegram_api_factory.md
+      - reference/telegram_api/telegram_api_impl.md
+      - reference/telegram_api/telegram_api_mock.md
+
+markdown_extensions:
+    - toc:
+        permalink: "#"
