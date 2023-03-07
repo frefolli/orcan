@@ -1,6 +1,7 @@
 """
 provides configuration classes
 """
+from dotenv import dotenv_values
 import os
 
 
@@ -20,7 +21,7 @@ def get_env_or_default(
         environment_variable: str,
         default_value: str) -> str:
     """
-    get content of environment variable if is define
+    get content of .env file if is define
     else returns default value
 
     Args:
@@ -30,7 +31,6 @@ def get_env_or_default(
     Returns:
         str: _description_
     """
-    return os.environ.get(
-        environment_variable,
-        default_value
-    )
+    config = dotenv_values('.env')
+    value = (config[environment_variable] if config[environment_variable] is not None else default_value)
+    return value
