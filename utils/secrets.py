@@ -13,11 +13,11 @@ ANTISPAM_BOT = (
                 "<API-TOKEN>")
         )))
 
-REPOST_BOT = (
+POST_BOT = (
     BotConfig(
         api_token=(
             get_env_or_default(
-                "REPOST_BOT_API_TOKEN",
+                "POST_BOT_API_TOKEN",
                 "<API-TOKEN>")
         )))
 

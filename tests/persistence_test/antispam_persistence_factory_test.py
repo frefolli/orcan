@@ -2,10 +2,10 @@
 provides test class for telegram_api_factory
 """
 from unittest import TestCase
-from persistence.antispam_persistence_factory import AntiSpamPersistenceFactory
-from persistence.i_antispam_persistence import IAntiSpamPersistence
-from persistence.antispam_persistence_impl import AntiSpamPersistenceImpl
-from persistence.antispam_persistence_mock import AntiSpamPersistenceMock
+from persistence.antispam_persistence.antispam_persistence_factory import AntiSpamPersistenceFactory
+from persistence.antispam_persistence.i_antispam_persistence import IAntiSpamPersistence
+from persistence.antispam_persistence.antispam_persistence_impl import AntiSpamPersistenceImpl
+from persistence.antispam_persistence.antispam_persistence_mock import AntiSpamPersistenceMock
 
 
 class AntiSpamPersistenceFactoryTest(TestCase):

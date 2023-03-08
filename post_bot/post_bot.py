@@ -1,0 +1,235 @@
+"""
+provides class AntiSpamBot
+"""
+import logging
+from telegram import Update
+from telegram import InlineKeyboardButton
+from telegram import InlineKeyboardMarkup
+
+from telegram.ext import MessageHandler
+from telegram.ext import ContextTypes
+from telegram.ext import CommandHandler
+from telegram.ext import BaseHandler
+from telegram.ext import CallbackQueryHandler
+from telegram.ext import ConversationHandler
+from telegram.ext import filters
+
+from telegram_api import TelegramAPIFactory
+
+from post_bot.post import Post
+from post_bot.state import State
+from post_bot.state import CallbackData
+
+from utils.secrets import POST_BOT
+
+
+class PostBot:
+    """
+    Post telegram bot
+    """
+    def __init__(self) -> None:
+        """
+        default constructor
+        """
+        self.__build_persistence()
+        self.__build_context()
+        self.__build_telegram_api()
+
+    def __build_persistence(self) -> None:
+        """
+        setup persistence
+        """
+        return None
+
+    def __build_context(self) -> None:
+        """
+        setup context
+        extracting informations from persistence
+        """
+        return None
+
+    def __build_handler_list(self) -> list[BaseHandler]:
+        """
+        assemble handler list
+        """
+        conv_handler = ConversationHandler(
+            entry_points=[
+                CommandHandler("start", self.__start),
+                CommandHandler("create_new_post", self.__start),
+                ],
+            states={
+                State.ASK_TITLE: [
+                    CallbackQueryHandler(self.__ask_title, pattern="^" + str(CallbackData.CREATE) + "$"),
+                ],
+                State.TITLE: [
+                    MessageHandler(filters.TEXT, self.__handle_title),
+                ],
+                State.DESCRIPTION: [
+                    MessageHandler(filters.TEXT, self.__handle_description),
+                ],
+                State.ASK_ATTACHMENT: [
+                    CallbackQueryHandler(self.__ask_attachment, pattern="^" + str(CallbackData.ATTACHMENT_YES) + "$"),
+                    CallbackQueryHandler(None, pattern="^" + str(CallbackData.ATTACHMENT_NO) + "$"),
+                ],
+                State.ATTACHMENT: [
+                    MessageHandler(filters.ATTACHMENT, self.__handle_attachment),
+                ]
+            },
+            fallbacks=[CommandHandler("cancel", self.__start)],
+        )
+
+        return [conv_handler]
+
+    def __build_telegram_api(self) -> None:
+        """
+        setup telegram api
+        """
+        handlers = self.__build_handler_list()
+        self.__telegram_api = TelegramAPIFactory.new(
+            api_token=POST_BOT.api_token,
+            handlers=handlers
+        )
+    
+    async def __start(
+            self,
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE) -> None:
+        """
+        handle /start
+
+        Args:
+            update (Update): _description_
+            context (ContextTypes.DEFAULT_TYPE): _description_
+        """
+        user = update.message.from_user
+        logging.info("User %s started the conversation.", user.first_name)
+        keyboard = [
+            [
+                InlineKeyboardButton("create new post", callback_data=str(CallbackData.CREATE))
+            ]
+        ]
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.message.reply_text("What do you want to do?", reply_markup=reply_markup)
+
+        return State.ASK_TITLE
+        
+    async def __ask_title(
+            self,
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE) -> int:
+        query = update.callback_query
+
+        await query.answer()
+        await query.edit_message_text(text="What is the title of your post?")
+
+        return State.TITLE
+
+    async def __handle_title(
+            self,
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE) -> int:
+        """
+            handle title of the post
+        
+            Args:
+                update (Update): _description_
+                context (ContextTypes.DEFAULT_TYPE): _description_
+        """
+        context.chat_data["Post"] = Post(update.message.text)
+        logging.warning("setting title post")
+        await update.message.reply_text("Insert a description of your post:")
+        return State.DESCRIPTION
+
+    async def __handle_description(
+            self,
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE) -> int:
+        
+        context.chat_data["Post"].set_description(update.message.text)
+        logging.warning("setting description post")
+        keyboard = [
+            [
+                InlineKeyboardButton("Yes", callback_data=str(CallbackData.ATTACHMENT_YES)),
+                InlineKeyboardButton("No", callback_data=str(CallbackData.ATTACHMENT_NO))
+            ]
+        ]
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.message.reply_text("Do you want to add an attachment?", reply_markup=reply_markup)
+        return State.ASK_ATTACHMENT
+
+    async def __ask_attachment(
+            self,
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE) -> int:
+        query = update.callback_query
+        await query.answer()        
+        await query.edit_message_text(text="Drop an attachment from your gallery:")
+
+        return State.ATTACHMENT
+    
+    async def __handle_attachment(
+            self,
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE) -> int:
+        
+        f = await update.message.document.get_file()
+        await f.download_to_drive('ciao')
+
+
+        await update.message.reply_text(text="Post resume:")
+        await update.message.reply_text(text="Title:" + context.chat_data['Post'].get_title())
+        await update.message.reply_text(text="Description:" + context.chat_data['Post'].get_description())
+        await update.message.reply_text(text="Attachment:ok")
+        return ConversationHandler.END
+
+
+    async def __handle_message(
+            self,
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE) -> None:
+        """handle incoming message
+
+        Args:
+            update (Update): _description_
+            context (ContextTypes.DEFAULT_TYPE): _description_
+        """
+
+    async def __handle_help(
+            self,
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE) -> None:
+        """handle /help
+
+        Args:
+            update (Update): _description_
+            context (ContextTypes.DEFAULT_TYPE): _description_
+        """
+        await update.message.reply_text("Use /start to create a new post.")
+        logging.warning("/help: %s" % update)
+
+    def start(self) -> None:
+        """
+        start the telegram api and the bot
+        """
+        logging.info("Post Bot [STARTED]")
+        self.__telegram_api.start()
+        logging.info("Post Bot [STOPPED]")
+
+    def __enter__(self) -> 'PostBot':
+        """
+        with-as semantic
+        """
+        self.start()
+        return self
+
+    def __exit__(self,
+                 exception_type,
+                 exception_value,
+                 exception_traceback) -> None:
+        """
+        with-as semantic
+        """
