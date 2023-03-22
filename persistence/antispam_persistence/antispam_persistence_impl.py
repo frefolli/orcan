@@ -10,7 +10,7 @@ class AntiSpamPersistenceImpl(IAntiSpamPersistence):
     implementation for antispam Persistence
     """
     def __init__(self,
-                 file_path: str = "antispam.db") -> None:
+                 file_path: str = "persistence.db") -> None:
         """
         default constructor
 

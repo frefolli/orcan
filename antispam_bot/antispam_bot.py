@@ -1,5 +1,17 @@
 """
 provides class AntiSpamBot
+
+Bot Help:
+
+add_banned_word - Adds the specified input WORD to banned word list
+remove_banned_word - Removes the specified input WORD from banned word list
+find_banned_word - Returns a list of banned words, if WORD is issued it's used as a filter
+add_allowed_link - Adds the specified input LINK to allowed link list
+remove_allowed_link - Removes the specified input LINK from allowed link list
+find_allowed_link - Returns a list of allowed links, if LINK is issued it's used as a filter
+start - Displays Start screen
+help - Displays Help screen
+
 """
 import logging
 import re
@@ -149,7 +161,7 @@ class AntiSpamBot:
                 )
             ), regex_object)
         else:
-            self.__allowed_links_finder = (lambda text: False)
+            self.__allowed_links_finder = lambda text: False
 
     def __update_banned_words_finder(self) -> None:
         """
@@ -166,7 +178,7 @@ class AntiSpamBot:
                 )
             ), regex_object)
         else:
-            self.__banned_words_finder = (lambda text: False)
+            self.__banned_words_finder = lambda text: False
 
     def __build_handler_list(self) -> list[BaseHandler]:
         """
@@ -175,24 +187,30 @@ class AntiSpamBot:
         return [
             CommandHandler(
                 "add_banned_word",
-                self.__handle_add_banned_word),
+                partial(self.authenticated,
+                        self.__handle_add_banned_word)),
             CommandHandler(
                 "add_allowed_link",
-                self.__handle_add_allowed_link),
+                partial(self.authenticated,
+                        self.__handle_add_allowed_link)),
 
             CommandHandler(
                 "remove_banned_word",
-                self.__handle_remove_banned_word),
+                partial(self.authenticated,
+                        self.__handle_remove_banned_word)),
             CommandHandler(
                 "remove_allowed_link",
-                self.__handle_remove_allowed_link),
+                partial(self.authenticated,
+                        self.__handle_remove_allowed_link)),
 
             CommandHandler(
                 "find_banned_word",
-                self.__handle_find_banned_word),
+                partial(self.authenticated,
+                        self.__handle_find_banned_word)),
             CommandHandler(
                 "find_allowed_link",
-                self.__handle_find_allowed_link),
+                partial(self.authenticated,
+                        self.__handle_find_allowed_link)),
 
             CommandHandler(
                 "help",
@@ -223,6 +241,27 @@ class AntiSpamBot:
             f"The \"{event}\" Incident",
             quote=True)
 
+    async def authenticated(self, then, update: Update,
+                            context: ContextTypes.DEFAULT_TYPE) -> None:
+        """applies authentication (authorization) to command request
+
+        Args:
+            then (_type_): callback
+            update (Update): update object
+            context (ContextTypes.DEFAULT_TYPE): context if any
+
+        Calls:
+            then: (_type_): callback
+        """
+        if update.message.chat.type != "supergroup":
+            return await self.__report_incident(
+                "Unauthorized", update, context)
+        admins = await update.message.chat.get_administrators()
+        for admin in admins:
+            if admin.status == "owner" or admin.status == "administrator":
+                return await then(update, context)
+        return await self.__report_incident("Unauthorized", update, context)
+
     def __get_command_argument(self, message: str) -> str:
         return " ".join(message.split(" ")[1:])
 
@@ -248,7 +287,7 @@ class AntiSpamBot:
     async def __handle_add_banned_word(
             self,
             update: Update,
-            context: ContextTypes.DEFAULT_TYPE) -> None:
+            _context: ContextTypes.DEFAULT_TYPE) -> None:
         """handle /add_banned_word
 
         Args:
@@ -269,7 +308,7 @@ class AntiSpamBot:
     async def __handle_add_allowed_link(
             self,
             update: Update,
-            context: ContextTypes.DEFAULT_TYPE) -> None:
+            _context: ContextTypes.DEFAULT_TYPE) -> None:
         """handle /add_allowed_link
 
         Args:
@@ -290,7 +329,7 @@ class AntiSpamBot:
     async def __handle_remove_banned_word(
             self,
             update: Update,
-            context: ContextTypes.DEFAULT_TYPE) -> None:
+            _context: ContextTypes.DEFAULT_TYPE) -> None:
         """handle /remove_banned_word
 
         Args:
@@ -311,7 +350,7 @@ class AntiSpamBot:
     async def __handle_remove_allowed_link(
             self,
             update: Update,
-            context: ContextTypes.DEFAULT_TYPE) -> None:
+            _context: ContextTypes.DEFAULT_TYPE) -> None:
         """handle /remove_allowed_link
 
         Args:
@@ -332,7 +371,7 @@ class AntiSpamBot:
     async def __handle_find_banned_word(
             self,
             update: Update,
-            context: ContextTypes.DEFAULT_TYPE) -> None:
+            _context: ContextTypes.DEFAULT_TYPE) -> None:
         """handle /find_banned_word
 
         Args:
@@ -353,7 +392,7 @@ class AntiSpamBot:
     async def __handle_find_allowed_link(
             self,
             update: Update,
-            context: ContextTypes.DEFAULT_TYPE) -> None:
+            _context: ContextTypes.DEFAULT_TYPE) -> None:
         """handle /find_allowed_link
 
         Args:
@@ -374,7 +413,7 @@ class AntiSpamBot:
     async def __handle_help(
             self,
             update: Update,
-            context: ContextTypes.DEFAULT_TYPE) -> None:
+            _context: ContextTypes.DEFAULT_TYPE) -> None:
         """handle /help
 
         Args:
@@ -388,7 +427,7 @@ class AntiSpamBot:
     async def __handle_start(
             self,
             update: Update,
-            context: ContextTypes.DEFAULT_TYPE) -> None:
+            _context: ContextTypes.DEFAULT_TYPE) -> None:
         """handle /start
 
         Args:
