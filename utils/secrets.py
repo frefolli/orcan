@@ -1,7 +1,7 @@
 """
 provides secrets
 """
-from utils.config import BotConfig
+from utils.config import AdminChatConfig, BotConfig
 from utils.config import get_env_or_default
 
 
@@ -28,4 +28,12 @@ REPORT_BOT = (
             get_env_or_default(
                 "REPORT_BOT_API_TOKEN",
                 "<API-TOKEN>")
+        )))
+
+ADMIN_CHAT_ID = (
+    AdminChatConfig(
+        chat_id=(
+            get_env_or_default(
+                "ADMIN_CHAT_ID",
+                "<CHAT_ID>")
         )))

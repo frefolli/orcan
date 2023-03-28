@@ -253,14 +253,11 @@ class AntiSpamBot:
         Calls:
             then: (_type_): callback
         """
-        if update.message.chat.type != "supergroup":
-            return await self.__report_incident(
-                "Unauthorized", update, context)
-        admins = await update.message.chat.get_administrators()
-        for admin in admins:
-            if admin.status == "owner" or admin.status == "administrator":
-                return await then(update, context)
-        return await self.__report_incident("Unauthorized", update, context)
+        member = await self.__telegram_api.is_admin(update.message.from_user.id)
+        if member:
+            return await then(update, context)
+        else:
+            return await self.__report_incident("Unauthorized", update, context)
 
     def __get_command_argument(self, message: str) -> str:
         return " ".join(message.split(" ")[1:])
@@ -275,6 +272,7 @@ class AntiSpamBot:
             update (Update): _description_
             context (ContextTypes.DEFAULT_TYPE): _description_
         """
+        print(update.message.chat.id)
         text_message = update.message.text.lower()
         links = self.__link_finder.findall(text_message)
         for link in links:
