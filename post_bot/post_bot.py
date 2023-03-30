@@ -47,7 +47,7 @@ class PostBot:
         extracting informations from persistence
         """
         return None
-
+    
     def __build_handler_list(self) -> list[BaseHandler]:
         """
         assemble handler list
@@ -69,16 +69,25 @@ class PostBot:
                 ],
                 State.ASK_ATTACHMENT: [
                     CallbackQueryHandler(self.__ask_attachment, pattern="^" + str(CallbackData.ATTACHMENT_YES) + "$"),
-                    CallbackQueryHandler(None, pattern="^" + str(CallbackData.ATTACHMENT_NO) + "$"),
+                    CallbackQueryHandler(self.__handle_no_attachment, pattern="^" + str(CallbackData.ATTACHMENT_NO) + "$"),
                 ],
                 State.ATTACHMENT: [
                     MessageHandler(filters.ATTACHMENT, self.__handle_attachment),
+                ],
+                State.CONFIRM: [
+                    CallbackQueryHandler(self.__handle_confirm, pattern="^" + str(CallbackData.POST_PUBLISH) + "$"),
+                    CallbackQueryHandler(self.__handle_deletion_confirm, pattern="^" + str(CallbackData.POST_DELETE) + "$")
                 ]
             },
-            fallbacks=[CommandHandler("cancel", self.__start)],
+            fallbacks=[MessageHandler(filters.ALL, self.__cancel)],
         )
 
-        return [conv_handler]
+        return [
+            conv_handler,
+            CommandHandler(
+                "help",
+                self.__handle_help),
+            ]
 
     def __build_telegram_api(self) -> None:
         """
@@ -138,7 +147,7 @@ class PostBot:
                 context (ContextTypes.DEFAULT_TYPE): _description_
         """
         context.chat_data["Post"] = Post(update.message.text)
-        logging.warning("setting title post")
+        logging.info("setting title post")
         await update.message.reply_text("Insert a description of your post:")
         return State.DESCRIPTION
 
@@ -148,7 +157,7 @@ class PostBot:
             context: ContextTypes.DEFAULT_TYPE) -> int:
         
         context.chat_data["Post"].set_description(update.message.text)
-        logging.warning("setting description post")
+        logging.info("setting description post")
         keyboard = [
             [
                 InlineKeyboardButton("Yes", callback_data=str(CallbackData.ATTACHMENT_YES)),
@@ -166,7 +175,7 @@ class PostBot:
             update: Update,
             context: ContextTypes.DEFAULT_TYPE) -> int:
         query = update.callback_query
-        await query.answer()        
+        
         await query.edit_message_text(text="Drop an attachment from your gallery:")
 
         return State.ATTACHMENT
@@ -176,27 +185,74 @@ class PostBot:
             update: Update,
             context: ContextTypes.DEFAULT_TYPE) -> int:
         
-        f = await update.message.document.get_file()
-        await f.download_to_drive('ciao')
+        f = await update.message.photo[-1].get_file()
+        context.chat_data['Post'].set_file_id(f.file_id)
 
 
-        await update.message.reply_text(text="Post resume:")
-        await update.message.reply_text(text="Title:" + context.chat_data['Post'].get_title())
-        await update.message.reply_text(text="Description:" + context.chat_data['Post'].get_description())
-        await update.message.reply_text(text="Attachment:ok")
+        keyboard = [
+            [
+                InlineKeyboardButton("Publish", callback_data=str(CallbackData.POST_PUBLISH)),
+                InlineKeyboardButton("Delete", callback_data=str(CallbackData.POST_DELETE))
+            ]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.message.reply_text(text="***POST RESUME***")
+        await update._bot.send_photo(chat_id = update.message.chat_id, 
+                                     photo = context.chat_data['Post'].get_file_id(),
+                                     caption = context.chat_data['Post'].get_text(),
+                                     reply_markup = reply_markup) 
+        return ConversationHandler.CONFIRM
+    
+    async def __handle_no_attachment(
+            self,
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE) -> int:
+        
+        query = update.callback_query
+
+        keyboard = [
+            [
+                InlineKeyboardButton("Publish", callback_data=str(CallbackData.POST_PUBLISH)),
+                InlineKeyboardButton("Delete", callback_data=str(CallbackData.POST_DELETE))
+            ]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update._bot.send_message(chat_id = query.message.chat_id, text="***POST RESUME***")
+        await update._bot.send_message(chat_id = query.message.chat_id, 
+                                       text = context.chat_data['Post'].get_text(),
+                                       reply_markup = reply_markup) 
+        
         return ConversationHandler.END
 
-
-    async def __handle_message(
+    async def __handle_confirm(
             self,
             update: Update,
             context: ContextTypes.DEFAULT_TYPE) -> None:
-        """handle incoming message
+        
+        return ConversationHandler.END
+    
+    async def __handle_deletion_confirm(
+            self,
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE) -> None:
+        
+        return ConversationHandler.END
+
+    async def __cancel(
+            self,
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE) -> None:
+        """handle if something goes wrong
 
         Args:
             update (Update): _description_
             context (ContextTypes.DEFAULT_TYPE): _description_
         """
+        await update.message.reply_text("This input doesn't expected, the creation of post is canceled. Please create e new post typing /create_new_post")
+        logging.info("/cancel: %s" % update)
+        return ConversationHandler.END
 
     async def __handle_help(
             self,
@@ -208,8 +264,9 @@ class PostBot:
             update (Update): _description_
             context (ContextTypes.DEFAULT_TYPE): _description_
         """
-        await update.message.reply_text("Use /start to create a new post.")
-        logging.warning("/help: %s" % update)
+        await update.message.reply_text("Use /start or /create_new_post to create a new post.")
+        logging.info("/help: %s" % update)
+
 
     def start(self) -> None:
         """

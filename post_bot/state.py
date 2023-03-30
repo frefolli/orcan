@@ -10,6 +10,7 @@ class State(Enum):
     DESCRIPTION = 3
     ASK_ATTACHMENT = 4
     ATTACHMENT = 5
+    CONFIRM = 6
     END = 1
 
 
@@ -20,3 +21,5 @@ class CallbackData(Enum):
     CREATE = 0
     ATTACHMENT_YES = 1
     ATTACHMENT_NO = 2
+    POST_PUBLISH = 3
+    POST_DELETE = 4
