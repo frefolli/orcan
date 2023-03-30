@@ -20,8 +20,10 @@ from post_bot.post import Post
 from post_bot.state import State
 from post_bot.state import CallbackData
 
-from utils.secrets import POST_BOT
+from utils.secrets import CHECK_POST_CHAT_ID
+from utils.secrets import FORWARD_POST_CHAT_ID
 
+from utils.secrets import POST_BOT
 
 class PostBot:
     """
@@ -39,6 +41,10 @@ class PostBot:
         """
         setup persistence
         """
+        self.__chats = {
+            'CHECK_GROUP': CHECK_POST_CHAT_ID,
+            'FORWARD_GROUP': FORWARD_POST_CHAT_ID
+        }
         return None
 
     def __build_context(self) -> None:
@@ -75,7 +81,7 @@ class PostBot:
                     MessageHandler(filters.ATTACHMENT, self.__handle_attachment),
                 ],
                 State.CONFIRM: [
-                    CallbackQueryHandler(self.__handle_confirm, pattern="^" + str(CallbackData.POST_PUBLISH) + "$"),
+                    CallbackQueryHandler(self.__handle_confirm, pattern="^" + str(CallbackData.POST_CHECK) + "$"),
                     CallbackQueryHandler(self.__handle_deletion_confirm, pattern="^" + str(CallbackData.POST_DELETE) + "$")
                 ]
             },
@@ -87,7 +93,11 @@ class PostBot:
             CommandHandler(
                 "help",
                 self.__handle_help),
-            ]
+            CallbackQueryHandler(
+                self.__handle_publish, 
+                pattern="^" + str(CallbackData.POST_PUBLISH) + "$"
+            )
+        ]
 
     def __build_telegram_api(self) -> None:
         """
@@ -191,7 +201,7 @@ class PostBot:
 
         keyboard = [
             [
-                InlineKeyboardButton("Publish", callback_data=str(CallbackData.POST_PUBLISH)),
+                InlineKeyboardButton("Publish", callback_data=str(CallbackData.POST_CHECK)),
                 InlineKeyboardButton("Delete", callback_data=str(CallbackData.POST_DELETE))
             ]
         ]
@@ -202,7 +212,7 @@ class PostBot:
                                      photo = context.chat_data['Post'].get_file_id(),
                                      caption = context.chat_data['Post'].get_text(),
                                      reply_markup = reply_markup) 
-        return ConversationHandler.CONFIRM
+        return State.CONFIRM
     
     async def __handle_no_attachment(
             self,
@@ -213,7 +223,7 @@ class PostBot:
 
         keyboard = [
             [
-                InlineKeyboardButton("Publish", callback_data=str(CallbackData.POST_PUBLISH)),
+                InlineKeyboardButton("Publish", callback_data=str(CallbackData.POST_CHECK)),
                 InlineKeyboardButton("Delete", callback_data=str(CallbackData.POST_DELETE))
             ]
         ]
@@ -224,14 +234,46 @@ class PostBot:
                                        text = context.chat_data['Post'].get_text(),
                                        reply_markup = reply_markup) 
         
-        return ConversationHandler.END
+        return State.CONFIRM
 
     async def __handle_confirm(
             self,
             update: Update,
             context: ContextTypes.DEFAULT_TYPE) -> None:
-        
+        query = update.callback_query
+
+        keyboard = [
+            [
+                InlineKeyboardButton("CONFIRM", callback_data=str(CallbackData.POST_PUBLISH)),
+                InlineKeyboardButton("Delete", callback_data=str(CallbackData.POST_DELETE))
+            ]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        if context.chat_data['Post'].get_file_id() != None:
+            await update._bot.send_photo(chat_id = self.__chats['CHECK_GROUP'], 
+                                         photo = context.chat_data['Post'].get_file_id(),
+                                         caption = context.chat_data['Post'].get_text(),
+                                         reply_markup = reply_markup) 
+        else:
+            await update._bot.send_message(chat_id = self.__chats['CHECK_GROUP'], 
+                                           text = context.chat_data['Post'].get_text(),
+                                           reply_markup = reply_markup) 
         return ConversationHandler.END
+    
+    async def __handle_publish(
+            self,
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE) -> None:
+        query = update.callback_query
+
+        
+        if context.chat_data['Post'].get_file_id() != None:
+            await update._bot.send_photo(chat_id = self.__chats['FORWARD_GROUP'], 
+                                         photo = context.chat_data['Post'].get_file_id(),
+                                         caption = context.chat_data['Post'].get_text()) 
+        else:
+            await update._bot.send_message(chat_id = self.__chats['FORWARD_GROUP'], 
+                                           text = context.chat_data['Post'].get_text()) 
     
     async def __handle_deletion_confirm(
             self,

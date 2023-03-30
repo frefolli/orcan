@@ -21,5 +21,6 @@ class CallbackData(Enum):
     CREATE = 0
     ATTACHMENT_YES = 1
     ATTACHMENT_NO = 2
-    POST_PUBLISH = 3
+    POST_CHECK = 3
     POST_DELETE = 4
+    POST_PUBLISH = 5

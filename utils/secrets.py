@@ -1,7 +1,7 @@
 """
 provides secrets
 """
-from utils.config import AdminChatConfig, BotConfig
+from utils.config import ChatConfig, BotConfig
 from utils.config import get_env_or_default
 
 
@@ -31,9 +31,25 @@ REPORT_BOT = (
         )))
 
 ADMIN_CHAT_ID = (
-    AdminChatConfig(
+    ChatConfig(
         chat_id=(
             get_env_or_default(
                 "ADMIN_CHAT_ID",
                 "<CHAT_ID>")
+        )))
+
+CHECK_POST_CHAT_ID = (
+    ChatConfig(
+        chat_id=(
+            get_env_or_default(
+               "CHECK_POST_CHAT_ID",
+               "<CHAT_ID>")
+        )))
+
+FORWARD_POST_CHAT_ID = (
+    ChatConfig(
+        chat_id=(
+            get_env_or_default(
+               "FORWARD_POST_CHAT_ID",
+               "<CHAT_ID>")
         )))
