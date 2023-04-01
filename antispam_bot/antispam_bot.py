@@ -103,17 +103,17 @@ def read_tlds():
         return file.read().split("\n")
 
 
-TLDS = read_tlds()
+# TLDS = read_tlds()
 # assume text is lowercase
 LINK_REGEX = (
     # open capture group
-    "(" +
     # protocol
     r"(?:[a-z0-9]+:\/\/)?" +
+    "(" +
     # domain
-    r"(?:[a-z0-9][\-a-z0-9]+)(?:\.[a-z0-9][\-a-z0-9]+)*" +
+    r"(?:[a-z0-9][\-a-z0-9]+)(?:\.[a-z0-9][\-a-z0-9]+)+" +
     # top level domain
-    f"(?:\\.{assemble_regex_for_finding_literals(TLDS)})" +
+    # f"(?:\\.{assemble_regex_for_finding_literals(TLDS)})" +
     # close capture group
     ")"
 )
@@ -153,7 +153,7 @@ class AntiSpamBot:
         """
         allowed_links = self.__persistence.get_all_allowed_links()
         regex_object = re.compile(
-            "(" + assemble_regex_for_finding_literals(allowed_links) + ")")
+            "^(" + assemble_regex_for_finding_literals(allowed_links) + ")$")
         if len(allowed_links) > 0:
             self.__allowed_links_finder = partial((
                 lambda regex, text: (
@@ -272,7 +272,6 @@ class AntiSpamBot:
             update (Update): _description_
             context (ContextTypes.DEFAULT_TYPE): _description_
         """
-        print(update.message.chat.id)
         text_message = update.message.text.lower()
         links = self.__link_finder.findall(text_message)
         for link in links:
