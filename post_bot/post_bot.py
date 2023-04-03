@@ -250,12 +250,12 @@ class PostBot:
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         if context.chat_data['Post'].get_file_id() != None:
-            await update._bot.send_photo(chat_id = self.__chats['CHECK_GROUP'], 
+            await update._bot.send_photo(chat_id = self.__chats['CHECK_GROUP'].chat_id, 
                                          photo = context.chat_data['Post'].get_file_id(),
                                          caption = context.chat_data['Post'].get_text(),
                                          reply_markup = reply_markup) 
         else:
-            await update._bot.send_message(chat_id = self.__chats['CHECK_GROUP'], 
+            await update._bot.send_message(chat_id = self.__chats['CHECK_GROUP'].chat_id, 
                                            text = context.chat_data['Post'].get_text(),
                                            reply_markup = reply_markup) 
         return ConversationHandler.END
