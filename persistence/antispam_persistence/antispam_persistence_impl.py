@@ -1,7 +1,7 @@
 """
 provide implementation for AntiSpam Persistence
 """
-from persistence.i_antispam_persistence import IAntiSpamPersistence
+from persistence.antispam_persistence.i_antispam_persistence import IAntiSpamPersistence
 from persistence.sqlite_database import SqliteDatabase
 
 

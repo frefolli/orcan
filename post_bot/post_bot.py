@@ -2,6 +2,8 @@
 provides class AntiSpamBot
 """
 import logging
+
+from telegram.constants import ParseMode
 from telegram import Update
 from telegram import InlineKeyboardButton
 from telegram import InlineKeyboardMarkup
@@ -20,9 +22,10 @@ from post_bot.post import Post
 from post_bot.state import State
 from post_bot.state import CallbackData
 
+from persistence.post_persistence.post_persistence_factory import PostPersistenceFactory
+
 from utils.secrets import CHECK_POST_CHAT_ID
 from utils.secrets import FORWARD_POST_CHAT_ID
-
 from utils.secrets import POST_BOT
 
 class PostBot:
@@ -45,6 +48,7 @@ class PostBot:
             'CHECK_GROUP': CHECK_POST_CHAT_ID,
             'FORWARD_GROUP': FORWARD_POST_CHAT_ID
         }
+        self.__persistence = PostPersistenceFactory.new()
         return None
 
     def __build_context(self) -> None:
@@ -142,7 +146,7 @@ class PostBot:
 
         await query.answer()
         await query.edit_message_text(text="What is the title of your post?")
-
+        logging.info("asking title post")
         return State.TITLE
 
     async def __handle_title(
@@ -156,7 +160,8 @@ class PostBot:
                 update (Update): _description_
                 context (ContextTypes.DEFAULT_TYPE): _description_
         """
-        context.chat_data["Post"] = Post(update.message.text)
+        #
+        context.chat_data["Post"] = Post(update.message.text, author_id=update.message.from_user.username)
         logging.info("setting title post")
         await update.message.reply_text("Insert a description of your post:")
         return State.DESCRIPTION
@@ -207,10 +212,12 @@ class PostBot:
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        await update.message.reply_text(text="***POST RESUME***")
+        await update.message.reply_text(text="*POST RESUME*",
+                                        parse_mode=ParseMode.MARKDOWN_V2)
         await update._bot.send_photo(chat_id = update.message.chat_id, 
                                      photo = context.chat_data['Post'].get_file_id(),
                                      caption = context.chat_data['Post'].get_text(),
+                                     parse_mode=ParseMode.MARKDOWN_V2,
                                      reply_markup = reply_markup) 
         return State.CONFIRM
     
@@ -229,9 +236,11 @@ class PostBot:
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        await update._bot.send_message(chat_id = query.message.chat_id, text="***POST RESUME***")
+        await update._bot.send_message(chat_id = query.message.chat_id, text="*POST RESUME*", 
+                                       parse_mode=ParseMode.MARKDOWN_V2)
         await update._bot.send_message(chat_id = query.message.chat_id, 
-                                       text = context.chat_data['Post'].get_text(),
+                                       text = context.chat_data['Post'].get_text(), 
+                                       parse_mode=ParseMode.MARKDOWN_V2,
                                        reply_markup = reply_markup) 
         
         return State.CONFIRM
@@ -249,15 +258,21 @@ class PostBot:
             ]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
+
         if context.chat_data['Post'].get_file_id() != None:
             await update._bot.send_photo(chat_id = self.__chats['CHECK_GROUP'].chat_id, 
                                          photo = context.chat_data['Post'].get_file_id(),
                                          caption = context.chat_data['Post'].get_text(),
+                                         parse_mode=ParseMode.MARKDOWN_V2,
                                          reply_markup = reply_markup) 
         else:
             await update._bot.send_message(chat_id = self.__chats['CHECK_GROUP'].chat_id, 
                                            text = context.chat_data['Post'].get_text(),
-                                           reply_markup = reply_markup) 
+                                            parse_mode=ParseMode.MARKDOWN_V2,
+                                           reply_markup = reply_markup)
+            
+        self.__persistence.add_post(context.chat_data['Post'])
+        context.chat_data['Post'] = None
         return ConversationHandler.END
     
     async def __handle_publish(
@@ -265,15 +280,9 @@ class PostBot:
             update: Update,
             context: ContextTypes.DEFAULT_TYPE) -> None:
         query = update.callback_query
-
-        
-        if context.chat_data['Post'].get_file_id() != None:
-            await update._bot.send_photo(chat_id = self.__chats['FORWARD_GROUP'], 
-                                         photo = context.chat_data['Post'].get_file_id(),
-                                         caption = context.chat_data['Post'].get_text()) 
-        else:
-            await update._bot.send_message(chat_id = self.__chats['FORWARD_GROUP'], 
-                                           text = context.chat_data['Post'].get_text()) 
+        await update._bot.forward_message(chat_id = self.__chats['FORWARD_GROUP'].chat_id,
+                                    from_chat_id = self.__chats['CHECK_GROUP'].chat_id,
+                                    message_id = query.message.message_id)
     
     async def __handle_deletion_confirm(
             self,
