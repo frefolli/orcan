@@ -100,6 +100,10 @@ class PostBot:
             CallbackQueryHandler(
                 self.__handle_publish, 
                 pattern="^" + str(CallbackData.POST_PUBLISH) + "$"
+            ),
+            CallbackQueryHandler(
+                self.__handle_admin_deletion, 
+                pattern="^" + str(CallbackData.POST_DELETE) + "$"
             )
         ]
 
@@ -250,7 +254,7 @@ class PostBot:
             update: Update,
             context: ContextTypes.DEFAULT_TYPE) -> None:
         query = update.callback_query
-
+        await query.edit_message_reply_markup(None)
         keyboard = [
             [
                 InlineKeyboardButton("CONFIRM", callback_data=str(CallbackData.POST_PUBLISH)),
@@ -280,17 +284,43 @@ class PostBot:
             update: Update,
             context: ContextTypes.DEFAULT_TYPE) -> None:
         query = update.callback_query
+        await query.edit_message_reply_markup(None)
         await update._bot.forward_message(chat_id = self.__chats['FORWARD_GROUP'].chat_id,
                                     from_chat_id = self.__chats['CHECK_GROUP'].chat_id,
                                     message_id = query.message.message_id)
+        if query.message.text_markdown_v2 != None:
+            await query.edit_message_text(text=query.message.text_markdown_v2 + '\n\n*Post published*',
+                                      parse_mode=ParseMode.MARKDOWN_V2)
+        else:
+            await query.edit_message_caption(caption=query.message.caption_markdown_v2 + '\n\n*Post published*',
+                                      parse_mode=ParseMode.MARKDOWN_V2)
     
     async def __handle_deletion_confirm(
             self,
             update: Update,
             context: ContextTypes.DEFAULT_TYPE) -> None:
-        
+        query = update.callback_query
+        await query.edit_message_reply_markup(None)
+        await query.message.reply_text(text="Post deleted")
+        context.chat_data['Post'] = None
         return ConversationHandler.END
+    
+    async def __handle_admin_deletion(
+            self,
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE) -> None:
+        query = update.callback_query
+        await query.edit_message_reply_markup(None)
+        if query.message.text_markdown_v2 != None:
+            await query.edit_message_text(text=query.message.text_markdown_v2 + '\n\n*Post deleted*',
+                                      parse_mode=ParseMode.MARKDOWN_V2)
+        else:
+            await query.edit_message_caption(caption=query.message.caption_markdown_v2 + '\n\n*Post deleted*',
+                                      parse_mode=ParseMode.MARKDOWN_V2)
+        
+        context.chat_data['Post'] = None
 
+        
     async def __cancel(
             self,
             update: Update,

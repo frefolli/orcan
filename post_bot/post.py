@@ -8,6 +8,13 @@ class Post:
         self.set_author_id(author_id)
         self.__date_time = date.today()
 
+    def __text2md(self, str : str) -> str:
+        charset = ['_', '*', '[', '`']
+        for i in charset:
+            str = str.replace(i,'\\'+i)
+        return str
+
+
     def set_title(self, title : str) -> None:
         self.__title = title
         
@@ -36,7 +43,7 @@ class Post:
         return self.__file_id
     
     def get_text(self) -> str:
-        return self.get_title() + '\n' + self.get_description() + '\n\n Author: @' + self.get_author_id()
+        return '*'+ self.get_title() + '*\n' + self.get_description() + '\n\n Author: @' + self.__text2md(self.get_author_id()) + ''
 
     def __hash__(self) -> int:
         return hash((self.get_author_id(), self.get_title(), self.get_description(), self.__date_time))
