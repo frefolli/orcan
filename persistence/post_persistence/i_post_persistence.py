@@ -2,7 +2,7 @@
 provides interface for AntiSpam Persistence
 """
 from abc import ABC, abstractmethod
-from post_bot.post_bot import Post
+from post_bot.post import Post
 
 
 class IPostPersistence(ABC):

@@ -3,7 +3,7 @@ provide implementation for Post Persistence
 """
 from persistence.post_persistence.i_post_persistence import IPostPersistence
 from persistence.sqlite_database import SqliteDatabase
-from post_bot.post_bot import Post
+from post_bot.post import Post
 
 
 class PostPersistenceImpl(IPostPersistence):
