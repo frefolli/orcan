@@ -272,6 +272,7 @@ class AntiSpamBot:
             update (Update): _description_
             context (ContextTypes.DEFAULT_TYPE): _description_
         """
+        print(update.message.chat.id)
         text_message = update.message.text.lower()
         links = self.__link_finder.findall(text_message)
         for link in links:
