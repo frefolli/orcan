@@ -14,7 +14,7 @@ class BotConfig:
         """
         self.api_token = api_token
 
-class AdminChatConfig:
+class ChatConfig:
     """
     bot config
     """
