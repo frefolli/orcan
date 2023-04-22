@@ -16,14 +16,16 @@ help - Displays Help screen
 import logging
 import re
 from functools import partial
-from telegram import Update
+from telegram.constants import ParseMode
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import CallbackQueryHandler
 from telegram.ext import MessageHandler
 from telegram.ext import ContextTypes
 from telegram.ext import CommandHandler
 from telegram.ext import BaseHandler
 from persistence import AntiSpamPersistenceFactory
 from telegram_api import TelegramAPIFactory
-from utils.secrets import ANTISPAM_BOT
+from utils.secrets import ANTISPAM_BOT, SPAM_CHAT_ID
 
 
 HELP_SCREEN = """
@@ -218,6 +220,10 @@ class AntiSpamBot:
             CommandHandler(
                 "start",
                 self.__handle_start),
+            CallbackQueryHandler(
+                self.__handle_delete,
+                pattern="^DELETE:[0-9]+:[0-9]+$"
+            ),
             MessageHandler(
                 filters=None,
                 callback=self.__handle_message)
@@ -237,9 +243,26 @@ class AntiSpamBot:
                                 event: str,
                                 update: Update,
                                 __context: ContextTypes.DEFAULT_TYPE) -> None:
-        await update.message.reply_text(
-            f"The \"{event}\" Incident",
-            quote=True)
+        distress_signal = f"Distress: `Spam`\nType: `{event}`"
+        if event == "Unwanted Link" or event == "Unwanted Word":
+            distress_signal += f"\nMessage: ```\n\n{update.message.text}\n```"
+        reply_markup = InlineKeyboardMarkup([[
+            InlineKeyboardButton(
+                "Delete",
+                callback_data=f"DELETE:{update.message.chat_id}:{update.message.id}")
+        ]])
+        await update._bot.send_message(chat_id=SPAM_CHAT_ID.chat_id,
+                                       text=distress_signal,
+                                       parse_mode=ParseMode.MARKDOWN_V2,
+                                       reply_markup=reply_markup)
+
+    async def __handle_delete(self,
+                              update: Update,
+                              __context: ContextTypes.DEFAULT_TYPE) -> None:
+        (_, chat_id, msg_id) = update.callback_query.data.split(":")
+        await update._bot.deleteMessage(chat_id, msg_id)
+        await update.callback_query.message.edit_reply_markup()
+        await update.callback_query.message.edit_text("deleted correctly!")
 
     async def authenticated(self, then, update: Update,
                             context: ContextTypes.DEFAULT_TYPE) -> None:

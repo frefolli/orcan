@@ -38,6 +38,14 @@ ADMIN_CHAT_ID = (
                 "<CHAT_ID>")
         )))
 
+SPAM_CHAT_ID = (
+    ChatConfig(
+        chat_id=(
+            get_env_or_default(
+                "ADMIN_CHAT_ID",
+                "<CHAT_ID>")
+        )))
+
 CHECK_POST_CHAT_ID = (
     ChatConfig(
         chat_id=(
