@@ -25,7 +25,7 @@ from telegram.ext import CommandHandler
 from telegram.ext import BaseHandler
 from persistence import AntiSpamPersistenceFactory
 from telegram_api import TelegramAPIFactory
-from utils.secrets import ANTISPAM_BOT, SPAM_CHAT_ID
+from utils.secrets import ANTISPAM_BOT, SPAM_CHAT_ID, SICURA
 
 
 HELP_SCREEN = """
@@ -221,8 +221,12 @@ class AntiSpamBot:
                 "start",
                 self.__handle_start),
             CallbackQueryHandler(
-                self.__handle_delete,
+                partial(self.authenticated,self.__handle_delete),
                 pattern="^DELETE:[0-9]+:[0-9]+$"
+            ),
+            CallbackQueryHandler(
+                partial(self.authenticated,self.__handle_delete_and_ban),
+                pattern="^BAN:[0-9]+:[0-9]+:[0-9]+$"
             ),
             MessageHandler(
                 filters=None,
@@ -249,7 +253,10 @@ class AntiSpamBot:
         reply_markup = InlineKeyboardMarkup([[
             InlineKeyboardButton(
                 "Delete",
-                callback_data=f"DELETE:{update.message.chat_id}:{update.message.id}")
+                callback_data=f"DELETE:{update.message.chat_id}:{update.message.id}"),
+            InlineKeyboardButton(
+                "Delete And Ban",
+                callback_data=f"BAN:{update.message.chat_id}:{update.message.id}:{update.message.from_user.id}")
         ]])
         await update._bot.send_message(chat_id=SPAM_CHAT_ID.chat_id,
                                        text=distress_signal,
@@ -264,6 +271,17 @@ class AntiSpamBot:
         await update.callback_query.message.edit_reply_markup()
         await update.callback_query.message.edit_text("deleted correctly!")
 
+    async def __handle_delete_and_ban(self,
+                              update: Update,
+                              __context: ContextTypes.DEFAULT_TYPE) -> None:
+        (_, chat_id, msg_id, usr_id) = update.callback_query.data.split(":")
+        print(chat_id, msg_id, usr_id)
+        await update._bot.deleteMessage(chat_id, msg_id)
+        if not SICURA.value:
+            await update._bot.banChatMember(chat_id, usr_id)
+        await update.callback_query.message.edit_reply_markup()
+        await update.callback_query.message.edit_text("deleted and banned correctly!")
+
     async def authenticated(self, then, update: Update,
                             context: ContextTypes.DEFAULT_TYPE) -> None:
         """applies authentication (authorization) to command request
@@ -276,7 +294,12 @@ class AntiSpamBot:
         Calls:
             then: (_type_): callback
         """
-        member = await self.__telegram_api.is_admin(update.message.from_user.id)
+        user_id: int = 0
+        if update.callback_query is not None:
+            user_id = update.callback_query.from_user.id
+        if update.message is not None:
+            user_id = update.message.from_user.id
+        member = await self.__telegram_api.is_admin(user_id)
         if member:
             return await then(update, context)
         else:

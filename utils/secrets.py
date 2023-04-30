@@ -1,7 +1,7 @@
 """
 provides secrets
 """
-from utils.config import ChatConfig, BotConfig
+from utils.config import ChatConfig, BotConfig, BoolConfig
 from utils.config import get_env_or_default
 
 
@@ -60,4 +60,12 @@ FORWARD_POST_CHAT_ID = (
             get_env_or_default(
                "FORWARD_POST_CHAT_ID",
                "<CHAT_ID>")
+        )))
+
+SICURA = (
+    BoolConfig(
+        value=(
+            get_env_or_default(
+               "SICURA",
+               "True")
         )))
