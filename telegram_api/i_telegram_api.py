@@ -48,3 +48,9 @@ class ITelegramAPI(ABC):
         """
         should return api token passed as input
         """
+
+    @abstractmethod
+    async def is_admin(self, user_id: str) -> bool:
+        """
+        should True if a user_id is an admin
+        """

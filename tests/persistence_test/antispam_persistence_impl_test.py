@@ -4,7 +4,7 @@ provides tests for antispam_persistence_test
 import tempfile
 import os
 from unittest import TestCase
-from persistence.antispam_persistence_impl import AntiSpamPersistenceImpl
+from persistence.antispam_persistence.antispam_persistence_impl import AntiSpamPersistenceImpl
 
 
 class AntiSpamPersistenceImplTest(TestCase):

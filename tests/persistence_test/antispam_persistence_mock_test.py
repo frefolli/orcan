@@ -2,7 +2,7 @@
 provides tests for antispam_persistence_test
 """
 from unittest import TestCase
-from persistence.antispam_persistence_mock import AntiSpamPersistenceMock
+from persistence.antispam_persistence.antispam_persistence_mock import AntiSpamPersistenceMock
 
 
 class AntiSpamPersistenceMockTest(TestCase):

@@ -57,3 +57,9 @@ class TelegramAPIMock(ITelegramAPI):
         returns api token passed as input
         """
         return self.__api_token
+
+    async def is_admin(self, user_id: str) -> bool:
+        """
+        should True if a user_id is an admin
+        """
+        return False

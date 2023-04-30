@@ -1,8 +1,7 @@
 """
 provides secrets
 """
-from utils.config import BotConfig
-from utils.config import ChatConfig
+from utils.config import ChatConfig, BotConfig
 from utils.config import get_env_or_default
 
 
@@ -14,11 +13,11 @@ ANTISPAM_BOT = (
                 "<API-TOKEN>")
         )))
 
-REPOST_BOT = (
+POST_BOT = (
     BotConfig(
         api_token=(
             get_env_or_default(
-                "REPOST_BOT_API_TOKEN",
+                "POST_BOT_API_TOKEN",
                 "<API-TOKEN>")
         )))
 
@@ -61,5 +60,21 @@ ADMIN_CHAT_ID = (
         chat_id=(
             get_env_or_default(
                "ADMIN_CHAT_ID",
+                "<CHAT_ID>")
+        )))
+
+CHECK_POST_CHAT_ID = (
+    ChatConfig(
+        chat_id=(
+            get_env_or_default(
+               "CHECK_POST_CHAT_ID",
+               "<CHAT_ID>")
+        )))
+
+FORWARD_POST_CHAT_ID = (
+    ChatConfig(
+        chat_id=(
+            get_env_or_default(
+               "FORWARD_POST_CHAT_ID",
                "<CHAT_ID>")
         )))

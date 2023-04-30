@@ -2,8 +2,6 @@
 provides configuration classes
 """
 from dotenv import dotenv_values
-import os
-
 
 class BotConfig:
     """
@@ -16,6 +14,16 @@ class BotConfig:
         """
         self.api_token = api_token
 
+class ChatConfig:
+    """
+    bot config
+    """
+    def __init__(self,
+                 chat_id: str) -> None:
+        """
+        default constructor
+        """
+        self.chat_id = chat_id
 
 class ChatConfig:
     """
@@ -43,5 +51,5 @@ def get_env_or_default(
         str: _description_
     """
     config = dotenv_values('.env')
-    value = (config[environment_variable] if config[environment_variable] is not None else default_value)
+    value = (config.get(environment_variable) if config.get(environment_variable) is not None else default_value)
     return value

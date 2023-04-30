@@ -2,7 +2,7 @@
 provide implementation for Segnalazioni Persistence
 """
 from .i_segnalazioni_persistence import ISegnalazioniPersistence
-from .sqlite_database import SqliteDatabase
+from persistence.sqlite_database import SqliteDatabase
 
 
 class SegnalazioniPersistenceImpl(ISegnalazioniPersistence):

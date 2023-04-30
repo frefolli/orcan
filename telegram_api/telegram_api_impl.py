@@ -1,9 +1,11 @@
 """
 provides concrete TelegramAPI implementation
 """
+import telegram
 from telegram.ext import BaseHandler
 from telegram.ext import ApplicationBuilder
 from telegram_api.i_telegram_api import ITelegramAPI
+from utils.secrets import ADMIN_CHAT_ID
 
 
 class TelegramAPIImpl(ITelegramAPI):
@@ -16,9 +18,16 @@ class TelegramAPIImpl(ITelegramAPI):
         """
         default constructor
         """
+        self.__collect_secrets()
         self.__assign_api_token(api_token)
         self.__initialize_application()
         self.__assign_application_handlers(handlers)
+
+    def __collect_secrets(self) -> None:
+        """
+        collects secrets
+        """
+        self.__admin_chat_id = ADMIN_CHAT_ID.chat_id
 
     def __assign_api_token(self, api_token: str) -> None:
         """
@@ -69,3 +78,14 @@ class TelegramAPIImpl(ITelegramAPI):
         returns api token passed as input
         """
         return self.__api_token
+
+    async def is_admin(self, user_id: str) -> bool:
+        """
+        should True if a user_id is an admin
+        """
+        try:
+            member = await self.__application.bot.get_chat_member(self.__admin_chat_id, user_id)
+            return (member.status not in ["left", "kicked", "restricted"])
+        except telegram.error.TelegramError as err:
+            print(err)
+            return False
