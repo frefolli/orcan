@@ -16,7 +16,7 @@ class BotConfig:
 
 class ChatConfig:
     """
-    bot config
+    chat config
     """
     def __init__(self,
                  chat_id: str) -> None:
@@ -27,7 +27,7 @@ class ChatConfig:
 
 class BoolConfig:
     """
-    bot config
+    bool config
     """
     def __init__(self,
                  value: str) -> None:
