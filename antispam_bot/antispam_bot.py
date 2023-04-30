@@ -335,7 +335,7 @@ class AntiSpamBot:
 
         Args:
             update (Update): _description_
-            context (ContextTypes.DEFAULT_TYPE): _description_
+            _context (ContextTypes.DEFAULT_TYPE): _description_
         """
         word = self.__get_command_argument(update.message.text.lower()).strip()
         if len(word) == 0:
@@ -356,7 +356,7 @@ class AntiSpamBot:
 
         Args:
             update (Update): _description_
-            context (ContextTypes.DEFAULT_TYPE): _description_
+            _context (ContextTypes.DEFAULT_TYPE): _description_
         """
         link = self.__get_command_argument(update.message.text.lower()).strip()
         if len(link) == 0:
@@ -377,7 +377,7 @@ class AntiSpamBot:
 
         Args:
             update (Update): _description_
-            context (ContextTypes.DEFAULT_TYPE): _description_
+            _context (ContextTypes.DEFAULT_TYPE): _description_
         """
         word = self.__get_command_argument(update.message.text.lower()).strip()
         if len(word) == 0:
@@ -398,7 +398,7 @@ class AntiSpamBot:
 
         Args:
             update (Update): _description_
-            context (ContextTypes.DEFAULT_TYPE): _description_
+            _context (ContextTypes.DEFAULT_TYPE): _description_
         """
         link = self.__get_command_argument(update.message.text.lower()).strip()
         if len(link) == 0:
@@ -419,7 +419,7 @@ class AntiSpamBot:
 
         Args:
             update (Update): _description_
-            context (ContextTypes.DEFAULT_TYPE): _description_
+            _context (ContextTypes.DEFAULT_TYPE): _description_
         """
         word = self.__get_command_argument(update.message.text.lower().strip())
         matching_words = list(filter((lambda candidate: word in candidate),
@@ -440,7 +440,7 @@ class AntiSpamBot:
 
         Args:
             update (Update): _description_
-            context (ContextTypes.DEFAULT_TYPE): _description_
+            _context (ContextTypes.DEFAULT_TYPE): _description_
         """
         link = self.__get_command_argument(update.message.text.lower().strip())
         matching_links = list(filter((lambda candidate: link in candidate),
@@ -461,7 +461,7 @@ class AntiSpamBot:
 
         Args:
             update (Update): _description_
-            context (ContextTypes.DEFAULT_TYPE): _description_
+            _context (ContextTypes.DEFAULT_TYPE): _description_
         """
         await update.message.reply_markdown_v2(
             HELP_SCREEN,
@@ -475,7 +475,7 @@ class AntiSpamBot:
 
         Args:
             update (Update): _description_
-            context (ContextTypes.DEFAULT_TYPE): _description_
+            _context (ContextTypes.DEFAULT_TYPE): _description_
         """
         await update.message.reply_markdown_v2(
             START_SCREEN,
