@@ -25,6 +25,17 @@ class ChatConfig:
         """
         self.chat_id = chat_id
 
+class ChatConfig:
+    """
+    bot config
+    """
+    def __init__(self,
+                 chat_id: str) -> None:
+        """
+        default constructor
+        """
+        self.chat_id = chat_id
+        
 def get_env_or_default(
         environment_variable: str,
         default_value: str) -> str:

@@ -30,11 +30,36 @@ REPORT_BOT = (
                 "<API-TOKEN>")
         )))
 
+BOT_SEGNALAZIONI = (
+    BotConfig(
+        api_token=(
+            get_env_or_default(
+                "BOT_SEGNALAZIONI_API_TOKEN",
+                "<API-TOKEN>")
+        )))
+
+
+CHECK_SEGNAL_CHAT_ID = (
+    ChatConfig(
+        chat_id=(
+            get_env_or_default(
+               "CHECK_SEGNAL_CHAT_ID",
+               "<CHAT_ID>")
+        )))
+
+FORWARD_SEGNAL_CHAT_ID = (
+    ChatConfig(
+        chat_id=(
+            get_env_or_default(
+               "FORWARD_SEGNAL_CHAT_ID",
+               "<CHAT_ID>")
+        )))
+
 ADMIN_CHAT_ID = (
     ChatConfig(
         chat_id=(
             get_env_or_default(
-                "ADMIN_CHAT_ID",
+               "ADMIN_CHAT_ID",
                 "<CHAT_ID>")
         )))
 
