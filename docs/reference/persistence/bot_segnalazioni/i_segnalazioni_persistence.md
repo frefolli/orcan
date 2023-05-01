@@ -1,0 +1,1 @@
+:::persistence.bot_segnalazioni.segnalazioni_persistence_impl

@@ -16,7 +16,7 @@ class BotConfig:
 
 class ChatConfig:
     """
-    bot config
+    chat config
     """
     def __init__(self,
                  chat_id: str) -> None:
@@ -25,17 +25,25 @@ class ChatConfig:
         """
         self.chat_id = chat_id
 
-class ChatConfig:
+class BoolConfig:
     """
-    bot config
+    bool config
     """
     def __init__(self,
-                 chat_id: str) -> None:
+                 value: str) -> None:
         """
         default constructor
         """
-        self.chat_id = chat_id
-        
+        match value.lower():
+            case "true":
+                self.value = True
+                return
+            case "false":
+                self.value = False
+                return
+            case _:
+                raise ValueError(f"SICURA has invalid value {value}")
+
 def get_env_or_default(
         environment_variable: str,
         default_value: str) -> str:

@@ -60,10 +60,21 @@ nav:
     - persistence:
       - reference/persistence/index.md
       - reference/persistence/sqlite_database.md
-      - reference/persistence/i_antispam_persistence.md
-      - reference/persistence/antispam_persistence_factory.md
-      - reference/persistence/antispam_persistence_impl.md
-      - reference/persistence/antispam_persistence_mock.md
+      
+      - reference/persistence/antispam_persistence/i_antispam_persistence.md
+      - reference/persistence/antispam_persistence/antispam_persistence_factory.md
+      - reference/persistence/antispam_persistence/antispam_persistence_impl.md
+      - reference/persistence/antispam_persistence/antispam_persistence_mock.md
+
+      - reference/persistence/post_persistence/i_post_persistence.md
+      - reference/persistence/post_persistence/post_persistence_factory.md
+      - reference/persistence/post_persistence/post_persistence_impl.md
+      - reference/persistence/post_persistence/post_persistence_mock.md
+
+      - reference/persistence/bot_segnalazioni/i_segnalazioni_persistence.md
+      - reference/persistence/bot_segnalazioni/segnalazioni_persistence_factory.md
+      - reference/persistence/bot_segnalazioni/segnalazioni_persistence_impl.md
+      - reference/persistence/bot_segnalazioni/segnalazioni_persistence_mock.md
     - telegram_api:
       - reference/telegram_api/index.md
       - reference/telegram_api/i_telegram_api.md

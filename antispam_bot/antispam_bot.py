@@ -16,14 +16,16 @@ help - Displays Help screen
 import logging
 import re
 from functools import partial
-from telegram import Update
+from telegram.constants import ParseMode
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import CallbackQueryHandler
 from telegram.ext import MessageHandler
 from telegram.ext import ContextTypes
 from telegram.ext import CommandHandler
 from telegram.ext import BaseHandler
 from persistence import AntiSpamPersistenceFactory
 from telegram_api import TelegramAPIFactory
-from utils.secrets import ANTISPAM_BOT
+from utils.secrets import ANTISPAM_BOT, SPAM_CHAT_ID, SICURA
 
 
 HELP_SCREEN = """
@@ -103,17 +105,17 @@ def read_tlds():
         return file.read().split("\n")
 
 
-TLDS = read_tlds()
+# TLDS = read_tlds()
 # assume text is lowercase
 LINK_REGEX = (
     # open capture group
-    "(" +
     # protocol
     r"(?:[a-z0-9]+:\/\/)?" +
+    "(" +
     # domain
-    r"(?:[a-z0-9][\-a-z0-9]+)(?:\.[a-z0-9][\-a-z0-9]+)*" +
+    r"(?:[a-z0-9][\-a-z0-9]+)(?:\.[a-z0-9][\-a-z0-9]+)+" +
     # top level domain
-    f"(?:\\.{assemble_regex_for_finding_literals(TLDS)})" +
+    # f"(?:\\.{assemble_regex_for_finding_literals(TLDS)})" +
     # close capture group
     ")"
 )
@@ -153,7 +155,7 @@ class AntiSpamBot:
         """
         allowed_links = self.__persistence.get_all_allowed_links()
         regex_object = re.compile(
-            "(" + assemble_regex_for_finding_literals(allowed_links) + ")")
+            "^(" + assemble_regex_for_finding_literals(allowed_links) + ")$")
         if len(allowed_links) > 0:
             self.__allowed_links_finder = partial((
                 lambda regex, text: (
@@ -218,6 +220,14 @@ class AntiSpamBot:
             CommandHandler(
                 "start",
                 self.__handle_start),
+            CallbackQueryHandler(
+                partial(self.authenticated,self.__handle_delete),
+                pattern="^DELETE:[0-9]+:[0-9]+$"
+            ),
+            CallbackQueryHandler(
+                partial(self.authenticated,self.__handle_delete_and_ban),
+                pattern="^BAN:[0-9]+:[0-9]+:[0-9]+$"
+            ),
             MessageHandler(
                 filters=None,
                 callback=self.__handle_message)
@@ -237,9 +247,40 @@ class AntiSpamBot:
                                 event: str,
                                 update: Update,
                                 __context: ContextTypes.DEFAULT_TYPE) -> None:
-        await update.message.reply_text(
-            f"The \"{event}\" Incident",
-            quote=True)
+        distress_signal = f"Distress: `Spam`\nType: `{event}`"
+        if event == "Unwanted Link" or event == "Unwanted Word":
+            distress_signal += f"\nMessage: ```\n\n{update.message.text}\n```"
+        reply_markup = InlineKeyboardMarkup([[
+            InlineKeyboardButton(
+                "Delete",
+                callback_data=f"DELETE:{update.message.chat_id}:{update.message.id}"),
+            InlineKeyboardButton(
+                "Delete And Ban",
+                callback_data=f"BAN:{update.message.chat_id}:{update.message.id}:{update.message.from_user.id}")
+        ]])
+        await update._bot.send_message(chat_id=SPAM_CHAT_ID.chat_id,
+                                       text=distress_signal,
+                                       parse_mode=ParseMode.MARKDOWN_V2,
+                                       reply_markup=reply_markup)
+
+    async def __handle_delete(self,
+                              update: Update,
+                              __context: ContextTypes.DEFAULT_TYPE) -> None:
+        (_, chat_id, msg_id) = update.callback_query.data.split(":")
+        await update._bot.deleteMessage(chat_id, msg_id)
+        await update.callback_query.message.edit_reply_markup()
+        await update.callback_query.message.edit_text("deleted correctly!")
+
+    async def __handle_delete_and_ban(self,
+                              update: Update,
+                              __context: ContextTypes.DEFAULT_TYPE) -> None:
+        (_, chat_id, msg_id, usr_id) = update.callback_query.data.split(":")
+        print(chat_id, msg_id, usr_id)
+        await update._bot.deleteMessage(chat_id, msg_id)
+        if not SICURA.value:
+            await update._bot.banChatMember(chat_id, usr_id)
+        await update.callback_query.message.edit_reply_markup()
+        await update.callback_query.message.edit_text("deleted and banned correctly!")
 
     async def authenticated(self, then, update: Update,
                             context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -253,7 +294,12 @@ class AntiSpamBot:
         Calls:
             then: (_type_): callback
         """
-        member = await self.__telegram_api.is_admin(update.message.from_user.id)
+        user_id: int = 0
+        if update.callback_query is not None:
+            user_id = update.callback_query.from_user.id
+        if update.message is not None:
+            user_id = update.message.from_user.id
+        member = await self.__telegram_api.is_admin(user_id)
         if member:
             return await then(update, context)
         else:
@@ -272,7 +318,6 @@ class AntiSpamBot:
             update (Update): _description_
             context (ContextTypes.DEFAULT_TYPE): _description_
         """
-        print(update.message.chat.id)
         text_message = update.message.text.lower()
         links = self.__link_finder.findall(text_message)
         for link in links:
@@ -290,7 +335,7 @@ class AntiSpamBot:
 
         Args:
             update (Update): _description_
-            context (ContextTypes.DEFAULT_TYPE): _description_
+            _context (ContextTypes.DEFAULT_TYPE): _description_
         """
         word = self.__get_command_argument(update.message.text.lower()).strip()
         if len(word) == 0:
@@ -311,7 +356,7 @@ class AntiSpamBot:
 
         Args:
             update (Update): _description_
-            context (ContextTypes.DEFAULT_TYPE): _description_
+            _context (ContextTypes.DEFAULT_TYPE): _description_
         """
         link = self.__get_command_argument(update.message.text.lower()).strip()
         if len(link) == 0:
@@ -332,7 +377,7 @@ class AntiSpamBot:
 
         Args:
             update (Update): _description_
-            context (ContextTypes.DEFAULT_TYPE): _description_
+            _context (ContextTypes.DEFAULT_TYPE): _description_
         """
         word = self.__get_command_argument(update.message.text.lower()).strip()
         if len(word) == 0:
@@ -353,7 +398,7 @@ class AntiSpamBot:
 
         Args:
             update (Update): _description_
-            context (ContextTypes.DEFAULT_TYPE): _description_
+            _context (ContextTypes.DEFAULT_TYPE): _description_
         """
         link = self.__get_command_argument(update.message.text.lower()).strip()
         if len(link) == 0:
@@ -374,7 +419,7 @@ class AntiSpamBot:
 
         Args:
             update (Update): _description_
-            context (ContextTypes.DEFAULT_TYPE): _description_
+            _context (ContextTypes.DEFAULT_TYPE): _description_
         """
         word = self.__get_command_argument(update.message.text.lower().strip())
         matching_words = list(filter((lambda candidate: word in candidate),
@@ -395,7 +440,7 @@ class AntiSpamBot:
 
         Args:
             update (Update): _description_
-            context (ContextTypes.DEFAULT_TYPE): _description_
+            _context (ContextTypes.DEFAULT_TYPE): _description_
         """
         link = self.__get_command_argument(update.message.text.lower().strip())
         matching_links = list(filter((lambda candidate: link in candidate),
@@ -416,7 +461,7 @@ class AntiSpamBot:
 
         Args:
             update (Update): _description_
-            context (ContextTypes.DEFAULT_TYPE): _description_
+            _context (ContextTypes.DEFAULT_TYPE): _description_
         """
         await update.message.reply_markdown_v2(
             HELP_SCREEN,
@@ -430,7 +475,7 @@ class AntiSpamBot:
 
         Args:
             update (Update): _description_
-            context (ContextTypes.DEFAULT_TYPE): _description_
+            _context (ContextTypes.DEFAULT_TYPE): _description_
         """
         await update.message.reply_markdown_v2(
             START_SCREEN,
