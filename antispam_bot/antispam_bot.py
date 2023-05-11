@@ -222,11 +222,11 @@ class AntiSpamBot:
                 self.__handle_start),
             CallbackQueryHandler(
                 partial(self.authenticated,self.__handle_delete),
-                pattern="^DELETE:[0-9]+:[0-9]+$"
+                pattern="^DELETE:-?[0-9]+:-?[0-9]+$"
             ),
             CallbackQueryHandler(
                 partial(self.authenticated,self.__handle_delete_and_ban),
-                pattern="^BAN:[0-9]+:[0-9]+:[0-9]+$"
+                pattern="^BAN:-?[0-9]+:-?[0-9]+:-?[0-9]+$"
             ),
             MessageHandler(
                 filters=None,
@@ -266,6 +266,7 @@ class AntiSpamBot:
     async def __handle_delete(self,
                               update: Update,
                               __context: ContextTypes.DEFAULT_TYPE) -> None:
+        print("DELETE", update)
         (_, chat_id, msg_id) = update.callback_query.data.split(":")
         await update._bot.deleteMessage(chat_id, msg_id)
         await update.callback_query.message.edit_reply_markup()
@@ -274,6 +275,7 @@ class AntiSpamBot:
     async def __handle_delete_and_ban(self,
                               update: Update,
                               __context: ContextTypes.DEFAULT_TYPE) -> None:
+        print("BAN", update)
         (_, chat_id, msg_id, usr_id) = update.callback_query.data.split(":")
         print(chat_id, msg_id, usr_id)
         await update._bot.deleteMessage(chat_id, msg_id)
