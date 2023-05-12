@@ -17,7 +17,7 @@ import logging
 import re
 from functools import partial
 from telegram.constants import ParseMode
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import Chat, ChatMember, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackQueryHandler
 from telegram.ext import MessageHandler
 from telegram.ext import ContextTypes
@@ -222,11 +222,11 @@ class AntiSpamBot:
                 self.__handle_start),
             CallbackQueryHandler(
                 partial(self.authenticated,self.__handle_delete),
-                pattern="^DELETE:[0-9]+:[0-9]+$"
+                pattern="^DELETE:-?[0-9]+:-?[0-9]+$"
             ),
             CallbackQueryHandler(
                 partial(self.authenticated,self.__handle_delete_and_ban),
-                pattern="^BAN:[0-9]+:[0-9]+:[0-9]+$"
+                pattern="^BAN:-?[0-9]+:-?[0-9]+:-?[0-9]+$"
             ),
             MessageHandler(
                 filters=None,
@@ -243,44 +243,71 @@ class AntiSpamBot:
             handlers=handlers
         )
 
-    async def __report_incident(self,
+    async def __report_incident_spam(self,
                                 event: str,
+                                chat_id: str,
+                                msg_id: str,
+                                user_id: str,
+                                message: str,
                                 update: Update,
                                 __context: ContextTypes.DEFAULT_TYPE) -> None:
         distress_signal = f"Distress: `Spam`\nType: `{event}`"
-        if event == "Unwanted Link" or event == "Unwanted Word":
-            distress_signal += f"\nMessage: ```\n\n{update.message.text}\n```"
+        member : ChatMember = await update._bot.get_chat_member(chat_id, user_id)
+        user_name = member.user.full_name
+        chat : Chat = await update._bot.get_chat(chat_id)
+        chat_name = chat.full_name or chat.title
+        distress_signal += f"\nOffender: [{user_name}](tg://user?id={user_id})"
+        distress_signal += f"\nChat: [{chat_name}]({chat.invite_link.replace('http://', 'tg://')})"
+        distress_signal += f"\nMessage: ```\n\n{message}\n```"
         reply_markup = InlineKeyboardMarkup([[
             InlineKeyboardButton(
                 "Delete",
-                callback_data=f"DELETE:{update.message.chat_id}:{update.message.id}"),
+                callback_data=f"DELETE:{chat_id}:{msg_id}"),
             InlineKeyboardButton(
                 "Delete And Ban",
-                callback_data=f"BAN:{update.message.chat_id}:{update.message.id}:{update.message.from_user.id}")
+                callback_data=f"BAN:{chat_id}:{msg_id}:{user_id}")
         ]])
         await update._bot.send_message(chat_id=SPAM_CHAT_ID.chat_id,
                                        text=distress_signal,
                                        parse_mode=ParseMode.MARKDOWN_V2,
                                        reply_markup=reply_markup)
 
+    async def __report_incident_authorization(self,
+                                update: Update,
+                                __context: ContextTypes.DEFAULT_TYPE) -> None:
+        command = "WIP"
+        distress_signal = "Distress: `Spam`\nType: `Unauthorized Operation`"
+        chat_id = self.__extract_chat_id(update)
+        user_id = self.__extract_user_id(update)
+        member : ChatMember = await update._bot.get_chat_member(chat_id, user_id)
+        user_name = member.user.full_name
+        chat : Chat = await update._bot.get_chat(chat_id)
+        chat_name = chat.full_name or chat.title
+        distress_signal += f"\nOffender: [{user_name}](tg://user?id={user_id})"
+        distress_signal += f"\nChat: [{chat_name}]({chat.invite_link.replace('http://', 'tg://')})"
+        distress_signal += f"\nCommand: ```\n\n{command}\n```"
+        await update._bot.send_message(chat_id=SPAM_CHAT_ID.chat_id,
+                                       text=distress_signal)
+
     async def __handle_delete(self,
                               update: Update,
                               __context: ContextTypes.DEFAULT_TYPE) -> None:
         (_, chat_id, msg_id) = update.callback_query.data.split(":")
         await update._bot.deleteMessage(chat_id, msg_id)
-        await update.callback_query.message.edit_reply_markup()
-        await update.callback_query.message.edit_text("deleted correctly!")
+        await update.callback_query.message.edit_text(
+            text=(update.callback_query.message.text_markdown + "\n\nStatus: `Deleted`"),
+            parse_mode=ParseMode.MARKDOWN_V2)
 
     async def __handle_delete_and_ban(self,
                               update: Update,
                               __context: ContextTypes.DEFAULT_TYPE) -> None:
         (_, chat_id, msg_id, usr_id) = update.callback_query.data.split(":")
-        print(chat_id, msg_id, usr_id)
-        await update._bot.deleteMessage(chat_id, msg_id)
         if not SICURA.value:
             await update._bot.banChatMember(chat_id, usr_id)
-        await update.callback_query.message.edit_reply_markup()
-        await update.callback_query.message.edit_text("deleted and banned correctly!")
+        await update._bot.deleteMessage(chat_id, msg_id)
+        await update.callback_query.message.edit_text(
+            text=(update.callback_query.message.text_markdown + "\n\nStatus: `Deleted and Banned`"),
+            parse_mode=ParseMode.MARKDOWN_V2)
 
     async def authenticated(self, then, update: Update,
                             context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -303,10 +330,44 @@ class AntiSpamBot:
         if member:
             return await then(update, context)
         else:
-            return await self.__report_incident("Unauthorized", update, context)
+            return await self.__report_incident_authorization(update, context)
 
     def __get_command_argument(self, message: str) -> str:
         return " ".join(message.split(" ")[1:])
+
+    def __extract_text(self, update: Update) -> str | None:
+        if update.message is not None:
+            if update.message.text is not None:
+                return update.message.text
+            if update.message.caption is not None:
+                return update.message.caption
+        if update.edited_message is not None:
+            if update.edited_message.text is not None:
+                return update.edited_message.text
+            if update.edited_message.caption is not None:
+                return update.edited_message.caption
+        return None
+
+    def __extract_chat_id(self, update: Update) -> int | None:
+        if update.message is not None:
+            return update.message.chat_id
+        if update.edited_message is not None:
+            return update.edited_message.chat_id
+        return None
+
+    def __extract_msg_id(self, update: Update) -> int | None:
+        if update.message is not None:
+            return update.message.id
+        if update.edited_message is not None:
+            return update.edited_message.id
+        return None
+
+    def __extract_user_id(self, update: Update) -> int | None:
+        if update.message is not None:
+            return update.message.from_user.id
+        if update.edited_message is not None:
+            return update.edited_message.from_user.id
+        return None
 
     async def __handle_message(
             self,
@@ -318,14 +379,26 @@ class AntiSpamBot:
             update (Update): _description_
             context (ContextTypes.DEFAULT_TYPE): _description_
         """
-        text_message = update.message.text.lower()
+        text_message : str = (self.__extract_text(update) or "").lower()
         links = self.__link_finder.findall(text_message)
         for link in links:
             if not self.__allowed_links_finder(link):
-                await self.__report_incident("Unwanted Link", update, context)
+                await self.__report_incident_spam(
+                    "Unwanted Link",
+                    self.__extract_chat_id(update),
+                    self.__extract_msg_id(update),
+                    self.__extract_user_id(update),
+                    text_message,
+                    update, context)
 
         if self.__banned_words_finder(text_message):
-            await self.__report_incident("Unwanted Word", update, context)
+            await self.__report_incident_spam(
+                "Unwanted Word",
+                self.__extract_chat_id(update),
+                self.__extract_msg_id(update),
+                self.__extract_user_id(update),
+                text_message,
+                update, context)
 
     async def __handle_add_banned_word(
             self,
