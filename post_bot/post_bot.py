@@ -165,7 +165,10 @@ class PostBot:
                 context (ContextTypes.DEFAULT_TYPE): _description_
         """
         #
-        context.chat_data["Post"] = Post(update.message.text, author_id=update.message.from_user.username)
+        context.chat_data["Post"] = Post(update.message.text, 
+                                         author_name=update.message.from_user.first_name, 
+                                         author_last=update.message.from_user.last_name, 
+                                         author_id=update.message.from_user.id)
         logging.info("setting title post")
         await update.message.reply_text("Insert a description of your post:")
         return State.DESCRIPTION
@@ -331,7 +334,7 @@ class PostBot:
             update (Update): _description_
             context (ContextTypes.DEFAULT_TYPE): _description_
         """
-        await update.message.reply_text("This input doesn't expected, the creation of post is canceled. Please create e new post typing /create_new_post")
+        await update.message.reply_text("This input doesn't expected, the creation of post is canceled. Please create a new post typing /create_new_post")
         logging.info("/cancel: %s" % update)
         return ConversationHandler.END
 

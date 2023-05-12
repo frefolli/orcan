@@ -61,3 +61,18 @@ def get_env_or_default(
     config = dotenv_values('.env')
     value = (config.get(environment_variable) if config.get(environment_variable) is not None else default_value)
     return value
+
+def text2md(str : str) -> str:
+    """
+    return a string 
+
+    Args:
+        str (str): string to parse in md
+
+    Returns:
+        str: formatted string ready to be encoded in md 
+    """
+    charset = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
+    for i in charset:
+        str = str.replace(i,'\\'+i)
+    return str
