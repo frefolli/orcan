@@ -30,34 +30,32 @@ from utils.secrets import ANTISPAM_BOT, SPAM_CHAT_ID, SICURA
 
 HELP_SCREEN = """
 ```
-# Usage
+# Utilizzo
 
-## Banned Words
+## Parole bannate
 
 - /add_banned_word <WORD>
 - /remove_banned_word <WORD>
 - /find_banned_word [WORD]
 
-Must WORD always be a non empty word. Spaces and tabs don't count.
+WORD e' una stringa non nulla, gli spazi non contano.
+Se WORD e' omessa quando si utilizza /find_banned_word
+il bot ritornera' tutte le parole che sono state bannate.
 
-If WORD is omitted while using /find_banned_word,
-i'll return all banned words
-
-## Allowed Links
+## Link permessi
 
 - /add_allowed_link <LINK>
 - /remove_allowed_link <LINK>
 - /find_allowed_link [LINK]
 
-Must LINK always be a non empty word. Spaces and tabs don't count.
-
-If LINK is omitted while using /find_allowed_link,
-i'll return all allowed links
+LINK e' una stringa non nulla, gli spazi non contano.
+Se LINK e' omessa quando si utilizza /find_allowed_link
+il bot ritornera' tutti link che sono consentiti.
 
 ## Misc
 
-- /start display start screen
-- /help display help screen
+- /start mostra la schermata di introduzione
+- /help mostra la schermata aiuto
 ```
 """
 START_SCREEN = """
@@ -251,20 +249,20 @@ class AntiSpamBot:
                                 message: str,
                                 update: Update,
                                 __context: ContextTypes.DEFAULT_TYPE) -> None:
-        distress_signal = f"Distress: `Spam`\nType: `{event}`"
+        distress_signal = f"Evento: `Spam`\nTipo: `{event}`"
         member : ChatMember = await update._bot.get_chat_member(chat_id, user_id)
         user_name = member.user.full_name
         chat : Chat = await update._bot.get_chat(chat_id)
         chat_name = chat.full_name or chat.title
-        distress_signal += f"\nOffender: [{user_name}](tg://user?id={user_id})"
+        distress_signal += f"\nAccount: [{user_name}](tg://user?id={user_id})"
         distress_signal += f"\nChat: [{chat_name}]({chat.invite_link.replace('http://', 'tg://')})"
-        distress_signal += f"\nMessage: ```\n\n{message}\n```"
+        distress_signal += f"\nMessaggio: ```\n\n{message}\n```"
         reply_markup = InlineKeyboardMarkup([[
             InlineKeyboardButton(
-                "Delete",
+                "Cancella",
                 callback_data=f"DELETE:{chat_id}:{msg_id}"),
             InlineKeyboardButton(
-                "Delete And Ban",
+                "Cancella e Banna",
                 callback_data=f"BAN:{chat_id}:{msg_id}:{user_id}")
         ]])
         await update._bot.send_message(chat_id=SPAM_CHAT_ID.chat_id,
@@ -275,17 +273,20 @@ class AntiSpamBot:
     async def __report_incident_authorization(self,
                                 update: Update,
                                 __context: ContextTypes.DEFAULT_TYPE) -> None:
-        command = "WIP"
-        distress_signal = "Distress: `Spam`\nType: `Unauthorized Operation`"
+        command = None
+        if update.message is not None:
+            command = update.message.text
+        distress_signal = "Evento: `Spam`\nTipo: `Operazione Non Autorizzata`"
         chat_id = self.__extract_chat_id(update)
         user_id = self.__extract_user_id(update)
         member : ChatMember = await update._bot.get_chat_member(chat_id, user_id)
         user_name = member.user.full_name
         chat : Chat = await update._bot.get_chat(chat_id)
         chat_name = chat.full_name or chat.title
-        distress_signal += f"\nOffender: [{user_name}](tg://user?id={user_id})"
+        distress_signal += f"\nAccount: [{user_name}](tg://user?id={user_id})"
         distress_signal += f"\nChat: [{chat_name}]({chat.invite_link.replace('http://', 'tg://')})"
-        distress_signal += f"\nCommand: ```\n\n{command}\n```"
+        if command is not None:
+            distress_signal += f"\nComando: ```\n\n{command}\n```"
         await update._bot.send_message(chat_id=SPAM_CHAT_ID.chat_id,
                                        text=distress_signal)
 
@@ -295,7 +296,7 @@ class AntiSpamBot:
         (_, chat_id, msg_id) = update.callback_query.data.split(":")
         await update._bot.deleteMessage(chat_id, msg_id)
         await update.callback_query.message.edit_text(
-            text=(update.callback_query.message.text_markdown + "\n\nStatus: `Deleted`"),
+            text=(update.callback_query.message.text_markdown + "\n\nStatus: `Cancellato`"),
             parse_mode=ParseMode.MARKDOWN_V2)
 
     async def __handle_delete_and_ban(self,
@@ -306,7 +307,7 @@ class AntiSpamBot:
             await update._bot.banChatMember(chat_id, usr_id)
         await update._bot.deleteMessage(chat_id, msg_id)
         await update.callback_query.message.edit_text(
-            text=(update.callback_query.message.text_markdown + "\n\nStatus: `Deleted and Banned`"),
+            text=(update.callback_query.message.text_markdown + "\n\nStatus: `Cancellato e Bannato`"),
             parse_mode=ParseMode.MARKDOWN_V2)
 
     async def authenticated(self, then, update: Update,
@@ -384,7 +385,7 @@ class AntiSpamBot:
         for link in links:
             if not self.__allowed_links_finder(link):
                 await self.__report_incident_spam(
-                    "Unwanted Link",
+                    "Link Non Permesso",
                     self.__extract_chat_id(update),
                     self.__extract_msg_id(update),
                     self.__extract_user_id(update),
@@ -393,7 +394,7 @@ class AntiSpamBot:
 
         if self.__banned_words_finder(text_message):
             await self.__report_incident_spam(
-                "Unwanted Word",
+                "Parola Bannata",
                 self.__extract_chat_id(update),
                 self.__extract_msg_id(update),
                 self.__extract_user_id(update),
@@ -413,12 +414,12 @@ class AntiSpamBot:
         word = self.__get_command_argument(update.message.text.lower()).strip()
         if len(word) == 0:
             return await update.message.reply_text(
-                "invalid word issued",
+                "inserire una parola valida",
                 quote=True)
         self.__persistence.add_banned_word(word)
         self.__update_banned_words_finder()
         await update.message.reply_text(
-            "banned words updated correctly",
+            "lista delle parole aggiornata con successo",
             quote=True)
 
     async def __handle_add_allowed_link(
@@ -434,12 +435,12 @@ class AntiSpamBot:
         link = self.__get_command_argument(update.message.text.lower()).strip()
         if len(link) == 0:
             return await update.message.reply_text(
-                "invalid link issued",
+                "inserire un link valido",
                 quote=True)
         self.__persistence.add_allowed_link(link)
         self.__update_allowed_links_finder()
         await update.message.reply_text(
-            "allowed links updated correctly",
+            "lista dei link aggiornata con successo",
             quote=True)
 
     async def __handle_remove_banned_word(
@@ -455,12 +456,12 @@ class AntiSpamBot:
         word = self.__get_command_argument(update.message.text.lower()).strip()
         if len(word) == 0:
             return await update.message.reply_text(
-                "invalid word issued",
+                "inserire una parola valida",
                 quote=True)
         self.__persistence.remove_banned_word(word)
         self.__update_banned_words_finder()
         await update.message.reply_text(
-            "banned words updated correctly",
+            "lista delle parole aggiornata con successo",
             quote=True)
 
     async def __handle_remove_allowed_link(
@@ -476,12 +477,12 @@ class AntiSpamBot:
         link = self.__get_command_argument(update.message.text.lower()).strip()
         if len(link) == 0:
             return await update.message.reply_text(
-                "invalid link issued",
+                "inserire un link valido",
                 quote=True)
         self.__persistence.remove_allowed_link(link)
         self.__update_allowed_links_finder()
         await update.message.reply_text(
-            "allowed links updated correctly",
+            "lista dei link aggiornata con successo",
             quote=True)
 
     async def __handle_find_banned_word(
@@ -498,10 +499,10 @@ class AntiSpamBot:
         matching_words = list(filter((lambda candidate: word in candidate),
                               self.__persistence.get_all_banned_words()))
         if len(matching_words) == 0:
-            await update.message.reply_text("no matching words found")
+            await update.message.reply_text("non e' stato possibile trovare la parola cercata")
         else:
             await update.message.reply_markdown_v2(
-                "matching words:\n```\n\t- %s\n```"
+                "parole simili:\n```\n\t- %s\n```"
                 % "\n\t- ".join(matching_words),
                 quote=True)
 
@@ -519,10 +520,10 @@ class AntiSpamBot:
         matching_links = list(filter((lambda candidate: link in candidate),
                               self.__persistence.get_all_allowed_links()))
         if len(matching_links) == 0:
-            await update.message.reply_text("no matching links found")
+            await update.message.reply_text("non e' stato possibile trovare il link cercato")
         else:
             await update.message.reply_markdown_v2(
-                "matching links:\n```\n\t- %s\n```"
+                "link simili:\n```\n\t- %s\n```"
                 % "\n\t- ".join(matching_links),
                 quote=True)
 
