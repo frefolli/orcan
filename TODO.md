@@ -7,3 +7,6 @@
 - [] prova a mandare un report alla persona bannata
     - i bot non possono iniziare conversazioni con gli utenti
 - [x] controlla la caption dei file
+- [x] chat invite\_link
+- [x] md encode
+

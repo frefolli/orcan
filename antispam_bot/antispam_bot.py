@@ -26,6 +26,7 @@ from telegram.ext import BaseHandler
 from persistence import AntiSpamPersistenceFactory
 from telegram_api import TelegramAPIFactory
 from utils.secrets import ANTISPAM_BOT, SPAM_CHAT_ID, SICURA
+from utils.config import text2md
 
 
 HELP_SCREEN = """
@@ -249,17 +250,17 @@ class AntiSpamBot:
                                 message: str,
                                 update: Update,
                                 __context: ContextTypes.DEFAULT_TYPE) -> None:
-        distress_signal = f"Evento: `Spam`\nTipo: `{event}`"
+        distress_signal = f"Evento: `Spam`\nTipo: `{text2md(event)}`"
         member : ChatMember = await update._bot.get_chat_member(chat_id, user_id)
         user_name = member.user.full_name
         chat : Chat = await update._bot.get_chat(chat_id)
         chat_name = chat.full_name or chat.title
-        distress_signal += f"\nAccount: [{user_name}](tg://user?id={user_id})"
+        distress_signal += f"\nAccount: [{text2md(user_name)}](tg://user?id={user_id})"
         if chat.invite_link:
-            distress_signal += f"\nChat: [{chat_name}]({chat.invite_link.replace('http://', 'tg://')})"
+            distress_signal += f"\nChat: [{text2md(chat_name)}]({chat.invite_link.replace('http://', 'tg://')})"
         else:
-            distress_signal += f"\nChat: {chat_name}"
-        distress_signal += f"\nMessaggio: ```\n\n{message}\n```"
+            distress_signal += f"\nChat: {text2md(chat_name)}"
+        distress_signal += f"\nMessaggio: ```\n\n{text2md(message)}\n```"
         reply_markup = InlineKeyboardMarkup([[
             InlineKeyboardButton(
                 "Cancella",
@@ -286,13 +287,13 @@ class AntiSpamBot:
         user_name = member.user.full_name
         chat : Chat = await update._bot.get_chat(chat_id)
         chat_name = chat.full_name or chat.title
-        distress_signal += f"\nAccount: [{user_name}](tg://user?id={user_id})"
+        distress_signal += f"\nAccount: [{text2md(user_name)}](tg://user?id={user_id})"
         if chat.invite_link:
-            distress_signal += f"\nChat: [{chat_name}]({chat.invite_link.replace('http://', 'tg://')})"
+            distress_signal += f"\nChat: [{text2md(chat_name)}]({chat.invite_link.replace('http://', 'tg://')})"
         else:
-            distress_signal += f"\nChat: {chat_name}"
+            distress_signal += f"\nChat: {text2md(chat_name)}"
         if command is not None:
-            distress_signal += f"\nComando: ```\n\n{command}\n```"
+            distress_signal += f"\nComando: ```\n\n{text2md(command)}\n```"
         await update._bot.send_message(chat_id=SPAM_CHAT_ID.chat_id,
                                        text=distress_signal)
 

@@ -62,17 +62,17 @@ def get_env_or_default(
     value = (config.get(environment_variable) if config.get(environment_variable) is not None else default_value)
     return value
 
-def text2md(str : str) -> str:
+def text2md(text : str) -> str:
     """
     return a string 
 
     Args:
-        str (str): string to parse in md
+        text (str): string to parse in md
 
     Returns:
         str: formatted string ready to be encoded in md 
     """
     charset = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
     for i in charset:
-        str = str.replace(i,'\\'+i)
-    return str
+        text = text.replace(i,'\\'+i)
+    return text
