@@ -255,7 +255,10 @@ class AntiSpamBot:
         chat : Chat = await update._bot.get_chat(chat_id)
         chat_name = chat.full_name or chat.title
         distress_signal += f"\nAccount: [{user_name}](tg://user?id={user_id})"
-        distress_signal += f"\nChat: [{chat_name}]({chat.invite_link.replace('http://', 'tg://')})"
+        if chat.invite_link:
+            distress_signal += f"\nChat: [{chat_name}]({chat.invite_link.replace('http://', 'tg://')})"
+        else:
+            distress_signal += f"\nChat: {chat_name}"
         distress_signal += f"\nMessaggio: ```\n\n{message}\n```"
         reply_markup = InlineKeyboardMarkup([[
             InlineKeyboardButton(
@@ -284,7 +287,10 @@ class AntiSpamBot:
         chat : Chat = await update._bot.get_chat(chat_id)
         chat_name = chat.full_name or chat.title
         distress_signal += f"\nAccount: [{user_name}](tg://user?id={user_id})"
-        distress_signal += f"\nChat: [{chat_name}]({chat.invite_link.replace('http://', 'tg://')})"
+        if chat.invite_link:
+            distress_signal += f"\nChat: [{chat_name}]({chat.invite_link.replace('http://', 'tg://')})"
+        else:
+            distress_signal += f"\nChat: {chat_name}"
         if command is not None:
             distress_signal += f"\nComando: ```\n\n{command}\n```"
         await update._bot.send_message(chat_id=SPAM_CHAT_ID.chat_id,
