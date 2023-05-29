@@ -82,6 +82,8 @@ Svoltamib Telegram Bot Infrastructure
 ```
 """
 
+def preprocess_word(word: str):
+    return re.sub(" +", " ", word).strip()
 
 def assemble_regex_for_finding_literals(literals: list[str]):
     """
@@ -90,8 +92,11 @@ def assemble_regex_for_finding_literals(literals: list[str]):
     Args:
         literals (list[str]): list of literals
     """
+    ENDING_TRIGGER = "(?:\\s+|$)" # spazi o nulla dopo
+    START_TRIGGER = "(?:\\s+|^)" # spazi o nulla prima
+    SPACE_TRIGGER = "\\s+" # assumo che se esistono gli spazi in mezzo alle parole devono essere inseriti
     escaped_literals = [
-        "(?:" + re.escape(literal) + ")"
+        "(?:" + START_TRIGGER + re.escape(literal).replace("\\ ", SPACE_TRIGGER) + ENDING_TRIGGER + ")"
         for literal in literals]
     return "|".join(escaped_literals)
 
@@ -227,6 +232,10 @@ class AntiSpamBot:
                 partial(self.authenticated,self.__handle_delete_and_ban),
                 pattern="^BAN:-?[0-9]+:-?[0-9]+:-?[0-9]+$"
             ),
+            CallbackQueryHandler(
+                partial(self.authenticated,self.__handle_ignore),
+                pattern="^IGNORE$"
+            ),
             MessageHandler(
                 filters=None,
                 callback=self.__handle_message)
@@ -266,6 +275,9 @@ class AntiSpamBot:
                 "Cancella",
                 callback_data=f"DELETE:{chat_id}:{msg_id}"),
             InlineKeyboardButton(
+                "Ignora",
+                callback_data=f"IGNORE"),
+            InlineKeyboardButton(
                 "Cancella e Banna",
                 callback_data=f"BAN:{chat_id}:{msg_id}:{user_id}")
         ]])
@@ -304,6 +316,13 @@ class AntiSpamBot:
         await update._bot.deleteMessage(chat_id, msg_id)
         await update.callback_query.message.edit_text(
             text=(update.callback_query.message.text_markdown + "\n\nStatus: `Cancellato`"),
+            parse_mode=ParseMode.MARKDOWN_V2)
+
+    async def __handle_ignore(self,
+                              update: Update,
+                              __context: ContextTypes.DEFAULT_TYPE) -> None:
+        await update.callback_query.message.edit_text(
+            text=(update.callback_query.message.text_markdown + "\n\nStatus: `Ignorato`"),
             parse_mode=ParseMode.MARKDOWN_V2)
 
     async def __handle_delete_and_ban(self,
@@ -418,7 +437,7 @@ class AntiSpamBot:
             update (Update): _description_
             _context (ContextTypes.DEFAULT_TYPE): _description_
         """
-        word = self.__get_command_argument(update.message.text.lower()).strip()
+        word = preprocess_word(self.__get_command_argument(update.message.text.lower()))
         if len(word) == 0:
             return await update.message.reply_text(
                 "inserire una parola valida",
