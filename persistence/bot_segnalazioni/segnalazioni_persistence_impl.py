@@ -1,16 +1,16 @@
 """
-provide implementation for AntiSpam Persistence
+provide implementation for Segnalazioni Persistence
 """
-from persistence.i_antispam_persistence import IAntiSpamPersistence
+from .i_segnalazioni_persistence import ISegnalazioniPersistence
 from persistence.sqlite_database import SqliteDatabase
 
 
-class AntiSpamPersistenceImpl(IAntiSpamPersistence):
+class SegnalazioniPersistenceImpl(ISegnalazioniPersistence):
     """
-    implementation for antispam Persistence
+    implementation for Segnalazioni Persistence
     """
     def __init__(self,
-                 file_path: str = "antispam.db") -> None:
+                 file_path: str = "Segnalazioni.db") -> None:
         """
         default constructor
 

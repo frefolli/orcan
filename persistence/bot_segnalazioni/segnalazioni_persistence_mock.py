@@ -1,10 +1,10 @@
 """
-provide implementation for AntiSpam Persistence
+provide implementation for Segnalazioni Persistence
 """
-from persistence.i_antispam_persistence import IAntiSpamPersistence
+from .i_segnalazioni_persistence import ISegnalazioniPersistence
 
 
-class AntiSpamPersistenceMock(IAntiSpamPersistence):
+class SegnalazioniPersistenceMock(ISegnalazioniPersistence):
     """
     interface for Persistence
     """
